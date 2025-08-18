@@ -101,6 +101,8 @@ def PTJPLSM(
         epsilon=None,
         beta_Pa: float = BETA_PA,
         PT_alpha: float = PT_ALPHA,
+        RH_threshold: float = None,
+        min_fwet: float = 0,
         field_capacity_scale: float = FIELD_CAPACITY_SCALE,
         minimum_Topt: float = MINIMUM_TOPT,
         field_capacity_directory: str = SOIL_CAPACITY_DIRECTORY,
@@ -374,7 +376,11 @@ def PTJPLSM(
     # Calculate vapor pressure deficit (VPD)
     VPD_Pa = rt.clip(SVP_Pa - Ea_Pa, 0, None)
     # Calculate relative surface wetness
-    fwet = calculate_relative_surface_wetness(RH, RH_threshold=None)
+    fwet = calculate_relative_surface_wetness(
+        RH=RH, 
+        RH_threshold=RH_threshold,
+        min_fwet=min_fwet
+    )
 
     check_distribution(fwet, "fwet")
 

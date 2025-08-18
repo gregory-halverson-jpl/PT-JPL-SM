@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 def process_PTJPLSM_table(
         input_df: DataFrame,
+        RH_threshold: float = None,
+        min_fwet: float = 0,
         upscale_to_daily: bool = UPSCALE_TO_DAILY,
         regenerate_net_radiation: bool = False
         ) -> DataFrame:
@@ -255,6 +257,8 @@ def process_PTJPLSM_table(
         G_Wm2=G_Wm2,
         SWin_Wm2=SWin_Wm2,
         time_UTC=time_UTC,
+        RH_threshold=RH_threshold,
+        min_fwet=min_fwet,
         regenerate_net_radiation=regenerate_net_radiation,
         upscale_to_daily=upscale_to_daily
     )
