@@ -25,7 +25,7 @@ def verify() -> bool:
     output_df = pd.read_csv(output_file_path)
 
     # Run the model on the input table
-    model_df = process_PTJPLSM_table(input_df)
+    model_df = process_PTJPLSM_table(input_df, upscale_to_daily=True)
 
     # Columns to compare (model outputs)
     output_columns = [
@@ -36,7 +36,9 @@ def verify() -> bool:
         "PET_Wm2",
         "LE_canopy_Wm2",
         "LE_interception_Wm2",
-        "LE_Wm2"
+        "LE_Wm2",
+        "Rn_daily_Wm2",
+        "ET_daily_kg"
     ]
 
     # Compare each output column and collect mismatches
