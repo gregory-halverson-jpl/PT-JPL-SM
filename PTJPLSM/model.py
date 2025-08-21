@@ -42,8 +42,8 @@ from gedi_canopy_height import load_canopy_height
 
 from carlson_leaf_area_index import carlson_leaf_area_index
 from sun_angles import calculate_daylight
-from verma_net_radiation import verma_net_radiation, daily_Rn_integration_verma
-from daily_evapotranspiration_upscaling import daily_ET_from_instantaneous, daily_ET_from_daily_LE
+from verma_net_radiation import verma_net_radiation, daylight_Rn_integration_verma
+from daylight_evapotranspiration import daylight_ET_from_instantaneous_LE, daylight_ET_from_daylight_LE
 
 from PTJPL import GAMMA_PA
 from PTJPL import BETA_PA
@@ -77,7 +77,7 @@ logger = logging.getLogger(__name__)
 def PTJPLSM(
         NDVI: Union[Raster, np.ndarray, float],
         Rn_Wm2: Union[Raster, np.ndarray, float] = None,
-        Rn_daily_Wm2: Union[Raster, np.ndarray, float] = None,
+        Rn_daylight_Wm2: Union[Raster, np.ndarray, float] = None,
         geometry: RasterGeometry = None,
         time_UTC: datetime = None,
         hour_of_day: np.ndarray = None,
@@ -109,7 +109,7 @@ def PTJPLSM(
         wilting_point_directory: str = SOIL_CAPACITY_DIRECTORY,
         canopy_height_directory: str = GEDI_DOWNLOAD_DIRECTORY,
         floor_Topt: bool = FLOOR_TOPT,
-        upscale_to_daily: bool = UPSCALE_TO_DAILY,
+        upscale_to_daylight: bool = UPSCALE_TO_DAYLIGHT,
         regenerate_net_radiation: bool = False,
         resampling: str = RESAMPLING) -> Dict[str, Union[Raster, np.ndarray]]:
     """
@@ -129,7 +129,7 @@ def PTJPLSM(
         G: Soil heat flux (Raster or np.ndarray, optional)
         Ta_C: Air temperature in Celsius (Raster or np.ndarray, optional)
         RH: Relative humidity (0-1) (Raster or np.ndarray, optional)
-        soil_moisture: Soil moisture (Raster or np.ndarray, optional)
+            # ET = daylight_ET_from_daylight_LE(LE_daylight_Wm2, datetime_UTC=time_UTC, geometry=geometry)
         field_capacity: Soil field capacity (Raster or np.ndarray, optional)
         wilting_point: Soil wilting point (Raster or np.ndarray, optional)
         Topt: Optimal plant temperature (Raster or np.ndarray, optional)
@@ -309,30 +309,34 @@ def PTJPLSM(
         elif SWin_Wm2 is not None:
             logger.info("using given shortwave radiation (SWin_Wm2)")
         
-        if upscale_to_daily:
-            logger.info("running Verma net radiation with daily upscaling")
+    if upscale_to_daylight:
+        if upscale_to_daylight:
+            logger.info("running Verma net radiation with daylight upscaling")
+            Rn_results = verma_net_radiation(
+                SWin_Wm2=SWin_Wm2,
+                albedo=albedo,
+                ST_C=ST_C,
+                emissivity=emissivity,
+                Ta_C=Ta_C,
+                RH=RH,
+                upscale_to_daylight=upscale_to_daylight,
+            )
+            Rn_Wm2 = Rn_results["Rn_Wm2"]
+            if "Rn_daylight_Wm2" in Rn_results:
+                Rn_daylight_Wm2 = Rn_results["Rn_daylight_Wm2"]
         else:
             logger.info("running instantaneous Verma net radiation")
-
-        Rn_results = verma_net_radiation(
-            SWin_Wm2=SWin_Wm2,
-            albedo=albedo,
-            ST_C=ST_C,
-            emissivity=emissivity,
-            Ta_C=Ta_C,
-            RH=RH,
-            upscale_to_daily=upscale_to_daily,
-        )
-
-        Rn_Wm2 = Rn_results["Rn_Wm2"]
-        
-        if "Rn_daily_Wm2" in Rn_results:
-            Rn_daily_Wm2 = Rn_results["Rn_daily_Wm2"]
-
-    elif Rn_Wm2 is not None:
-        logger.info("using given net radiation (Rn_Wm2) for PT-JPL-SM processing")
-
-    if Rn_Wm2 is None:
+            Rn_results = verma_net_radiation(
+                SWin_Wm2=SWin_Wm2,
+                albedo=albedo,
+                ST_C=ST_C,
+                emissivity=emissivity,
+                Ta_C=Ta_C,
+                RH=RH,
+                upscale_to_daylight=False,
+            )
+            Rn_Wm2 = Rn_results["Rn_Wm2"]
+        if Rn_Wm2 is None:
             missing_vars = []
             if albedo is None:
                 missing_vars.append('albedo')
@@ -344,9 +348,8 @@ def PTJPLSM(
                 raise ValueError(f"net radiation (Rn_Wm2) not given, and missing required variables to calculate: {', '.join(missing_vars)}")
             else:
                 raise ValueError("net radiation (Rn_Wm2) not given and cannot be calculated")
-
-    check_distribution(Rn_Wm2, "Rn_Wm2")
-    results["Rn_Wm2"] = Rn_Wm2
+        check_distribution(Rn_Wm2, "Rn_Wm2")
+        results["Rn_Wm2"] = Rn_Wm2
 
     # Compute soil heat flux if not provided
     if G_Wm2 is None and Rn_Wm2 is not None and ST_C is not None and NDVI is not None and albedo is not None:
@@ -471,49 +474,38 @@ def PTJPLSM(
     check_distribution(LE_Wm2, "LE_Wm2")
     results["LE_Wm2"] = LE_Wm2
 
-    if upscale_to_daily and time_UTC is not None:
-        logger.info("started daily ET upscaling")
+    if upscale_to_daylight and time_UTC is not None:
+        logger.info("started daylight ET upscaling")
         t_et = TicToc()
         t_et.tic()
-
-        if Rn_daily_Wm2 is None:
-            logger.info("running daily net radiation integration")
-            Rn_daily_Wm2 = daily_Rn_integration_verma(
+        if 'Rn_daylight_Wm2' not in locals():
+            logger.info("running daylight net radiation integration")
+            Rn_daylight_Wm2 = daylight_Rn_integration_verma(
                 Rn_Wm2=Rn_Wm2,
                 time_UTC=time_UTC,
                 geometry=geometry
             )
-
-        check_distribution(Rn_daily_Wm2, "Rn_daily_Rn_Wm2")
-        results["Rn_daily_Wm2"] = Rn_daily_Wm2
-
+        check_distribution(Rn_daylight_Wm2, "Rn_daylight_Rn_Wm2")
+        results["Rn_daylight_Wm2"] = Rn_daylight_Wm2
         EF = rt.where((LE_Wm2 == 0) | ((Rn_Wm2 - G_Wm2) == 0), 0, LE_Wm2 / (Rn_Wm2 - G_Wm2))
         check_distribution(EF, "EF")
         results["EF"] = EF
-
         # Calculate latent heat flux during daylight
-        LE_daylight_Wm2 = EF * Rn_daily_Wm2
+        LE_daylight_Wm2 = EF * Rn_daylight_Wm2
         check_distribution(LE_daylight_Wm2, "LE_daylight_Wm2")
         results["LE_daylight_Wm2"] = LE_daylight_Wm2
-
-        # Calculate daily ET
-        # ET = daily_ET_from_daily_LE(LE_daylight_Wm2, datetime_UTC=time_UTC, geometry=geometry)
-
+        # Calculate daylight ET
+        # ET = daylight_ET_from_daylight_LE(LE_daylight_Wm2, datetime_UTC=time_UTC, geometry=geometry)
         daylight_hours = calculate_daylight(day_of_year=day_of_year, time_UTC=time_UTC, geometry=geometry)
-
         # convert length of day in hours to seconds
         daylight_seconds = daylight_hours * 3600.0
-
         LAMBDA_JKG_WATER_20C = 2450000.0
-
         # factor seconds out of watts to get joules and divide by latent heat of vaporization to get kilograms
-        ET_daily_kg = rt.clip(LE_daylight_Wm2 * daylight_seconds / LAMBDA_JKG_WATER_20C, 0.0, None)
-
-        check_distribution(ET_daily_kg, "ET_daily_kg")
-        results["ET_daily_kg"] = ET_daily_kg
-
+        ET_daylight_kg = rt.clip(LE_daylight_Wm2 * daylight_seconds / LAMBDA_JKG_WATER_20C, 0.0, None)
+        check_distribution(ET_daylight_kg, "ET_daylight_kg")
+        results["ET_daylight_kg"] = ET_daylight_kg
         elapsed_et = t_et.tocvalue()
-        logger.info(f"completed daily ET upscaling (elapsed: {elapsed_et:.2f} seconds)")
+        logger.info(f"completed daylight ET upscaling (elapsed: {elapsed_et:.2f} seconds)")
 
     elapsed = t.tocvalue()
     logger.info(f"PT-JPL-SM model run complete (elapsed: {elapsed:.2f} seconds)")

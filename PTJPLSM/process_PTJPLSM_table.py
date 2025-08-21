@@ -30,7 +30,7 @@ def process_PTJPLSM_table(
         input_df: DataFrame,
         RH_threshold: float = None,
         min_fwet: float = 0,
-        upscale_to_daily: bool = UPSCALE_TO_DAILY,
+        upscale_to_daylight: bool = UPSCALE_TO_DAYLIGHT,
         regenerate_net_radiation: bool = False
         ) -> DataFrame:
     """
@@ -129,10 +129,10 @@ def process_PTJPLSM_table(
     else:
         Rn_Wm2 = None
 
-    if "Rn_daily_Wm2" in input_df:
-        Rn_daily_Wm2 = np.array(input_df.Rn_daily_Wm2).astype(np.float64)
+    if "Rn_daylight_Wm2" in input_df:
+        Rn_daylight_Wm2 = np.array(input_df.Rn_daylight_Wm2).astype(np.float64)
     else:
-        Rn_daily_Wm2 = None
+        Rn_daylight_Wm2 = None
 
     if "Topt_C" in input_df:
         Topt_C = np.array(input_df.Topt_C).astype(np.float64)
@@ -164,12 +164,6 @@ def process_PTJPLSM_table(
         G_Wm2 = np.array(input_df.G_Wm2).astype(np.float64)
     else:
         G_Wm2 = None
-        # G_Wm2 = calculate_SEBAL_soil_heat_flux(
-        #     Rn=Rn_Wm2,
-        #     ST_C=ST_C,
-        #     NDVI=NDVI,
-        #     albedo=albedo
-        # ).astype(np.float64)
 
     # --- Handle geometry and time columns ---
     import pandas as pd
@@ -218,25 +212,6 @@ def process_PTJPLSM_table(
     time_UTC = pd.to_datetime(input_df.time_UTC).tolist()
     logger.info("completed extracting time from PT-JPL-SM input table")
 
-    # if Topt_C is None:
-    #     Topt_C = load_Topt(geometry=geometry)
-    
-    # if fAPARmax is None:
-    #     fAPARmax = load_fAPARmax(geometry=geometry)
-
-    # if canopy_height_meters is None:
-    #     from gedi_canopy_height import load_canopy_height
-    #     canopy_height_meters = load_canopy_height(geometry=geometry)
-
-    # if field_capacity is None:
-    #     from soil_capacity_wilting import load_field_capacity
-    #     field_capacity = load_field_capacity(geometry=geometry)
-    # if wilting_point is None:
-    #     from soil_capacity_wilting import load_wilting_point
-    #     wilting_point = load_wilting_point(geometry=geometry)
-
-    # fAPARmax = np.where(fAPARmax == 0, np.nan, fAPARmax).astype(np.float64)
-
     # --- Pass time and geometry to the model ---
     results = PTJPLSM(
         geometry=geometry,
@@ -247,7 +222,7 @@ def process_PTJPLSM_table(
         RH=RH,
         soil_moisture=soil_moisture,
         Rn_Wm2=Rn_Wm2,
-        Rn_daily_Wm2=Rn_daily_Wm2,
+        Rn_daylight_Wm2=Rn_daylight_Wm2,
         Topt_C=Topt_C,
         fAPARmax=fAPARmax,
         canopy_height_meters=canopy_height_meters,
@@ -260,7 +235,7 @@ def process_PTJPLSM_table(
         RH_threshold=RH_threshold,
         min_fwet=min_fwet,
         regenerate_net_radiation=regenerate_net_radiation,
-        upscale_to_daily=upscale_to_daily
+        upscale_to_daylight=upscale_to_daylight
     )
 
     output_df = input_df.copy()
