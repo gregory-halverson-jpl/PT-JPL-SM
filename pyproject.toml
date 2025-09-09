@@ -18,7 +18,7 @@ classifiers = [
 dependencies = [
     "carlson-leaf-area-index",
     "check-distribution>=1.1.0",
-    "daily-evapotranspiration-upscaling",
+    "daylight-evapotranspiration",
     "ECOv002-calval-tables>=1.4.0",
     "ECOv002-CMR>=1.0.5",
     "ECOv002-granules>=1.0.3",
@@ -28,7 +28,7 @@ dependencies = [
     "monte-carlo-sensitivity>=1.4.0",
     "numpy",
     "pandas",
-    "PTJPL>=1.5.1",
+    "PTJPL>=1.7.1",
     "pytictoc",
     "rasters>=1.9.0",
     "scikit-learn",
