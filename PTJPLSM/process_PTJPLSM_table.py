@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 def process_PTJPLSM_table(
         input_df: DataFrame,
-        upscale_to_daily: bool = UPSCALE_TO_DAYLIGHT,
+        upscale_to_daylight: bool = UPSCALE_TO_DAYLIGHT,
         regenerate_net_radiation: bool = False
         ) -> DataFrame:
     """
@@ -256,7 +256,7 @@ def process_PTJPLSM_table(
         SWin_Wm2=SWin_Wm2,
         time_UTC=time_UTC,
         regenerate_net_radiation=regenerate_net_radiation,
-        upscale_to_daylight=upscale_to_daily
+        upscale_to_daylight=upscale_to_daylight
     )
 
     output_df = input_df.copy()

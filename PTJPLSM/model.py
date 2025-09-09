@@ -470,38 +470,17 @@ def PTJPLSM(
         t_et = TicToc()
         t_et.tic()
 
-        if Rn_daylight_Wm2 is None:
-            logger.info("running daylight net radiation integration")
-            Rn_daylight_Wm2 = daylight_Rn_integration_verma(
-                Rn_Wm2=Rn_Wm2,
-                time_UTC=time_UTC,
-                geometry=geometry
-            )
-
-        check_distribution(Rn_daylight_Wm2, "Rn_daylight_Rn_Wm2")
-        results["Rn_daylight_Wm2"] = Rn_daylight_Wm2
-
-        EF = rt.where((LE_Wm2 == 0) | ((Rn_Wm2 - G_Wm2) == 0), 0, LE_Wm2 / (Rn_Wm2 - G_Wm2))
-        check_distribution(EF, "EF")
-        results["EF"] = EF
-
-        # Calculate latent heat flux during daylight
-        LE_daylight_Wm2 = EF * Rn_daylight_Wm2
-        check_distribution(LE_daylight_Wm2, "LE_daylight_Wm2")
-        results["LE_daylight_Wm2"] = LE_daylight_Wm2
-
-        daylight_hours = calculate_daylight(day_of_year=day_of_year, time_UTC=time_UTC, geometry=geometry)
-
-        # convert length of day in hours to seconds
-        daylight_seconds = daylight_hours * 3600.0
-
-        LAMBDA_JKG_WATER_20C = 2450000.0
-
-        # factor seconds out of watts to get joules and divide by latent heat of vaporization to get kilograms
-        ET_daylight_kg = rt.clip(LE_daylight_Wm2 * daylight_seconds / LAMBDA_JKG_WATER_20C, 0.0, None)
-
-        check_distribution(ET_daylight_kg, "ET_daylight_kg")
-        results["ET_daylight_kg"] = ET_daylight_kg
+        # Use new upscaling function from daylight_evapotranspiration
+        daylight_results = daylight_ET_from_instantaneous_LE(
+            LE_instantaneous_Wm2=LE_Wm2,
+            Rn_instantaneous_Wm2=Rn_Wm2,
+            G_instantaneous_Wm2=G_Wm2,
+            day_of_year=day_of_year,
+            time_UTC=time_UTC,
+            geometry=geometry
+        )
+        # Add all returned daylight results to output
+        results.update(daylight_results)
 
         elapsed_et = t_et.tocvalue()
         logger.info(f"completed daylight ET upscaling (elapsed: {elapsed_et:.2f} seconds)")
