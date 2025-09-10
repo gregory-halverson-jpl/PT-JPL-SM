@@ -216,25 +216,6 @@ def process_PTJPLSM_table(
     time_UTC = pd.to_datetime(input_df.time_UTC).tolist()
     logger.info("completed extracting time from PT-JPL-SM input table")
 
-    # if Topt_C is None:
-    #     Topt_C = load_Topt(geometry=geometry)
-    
-    # if fAPARmax is None:
-    #     fAPARmax = load_fAPARmax(geometry=geometry)
-
-    # if canopy_height_meters is None:
-    #     from gedi_canopy_height import load_canopy_height
-    #     canopy_height_meters = load_canopy_height(geometry=geometry)
-
-    # if field_capacity is None:
-    #     from soil_capacity_wilting import load_field_capacity
-    #     field_capacity = load_field_capacity(geometry=geometry)
-    # if wilting_point is None:
-    #     from soil_capacity_wilting import load_wilting_point
-    #     wilting_point = load_wilting_point(geometry=geometry)
-
-    # fAPARmax = np.where(fAPARmax == 0, np.nan, fAPARmax).astype(np.float64)
-
     # --- Pass time and geometry to the model ---
     results = PTJPLSM(
         geometry=geometry,
