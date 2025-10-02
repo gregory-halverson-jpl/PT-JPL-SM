@@ -72,6 +72,7 @@ def generate_PTJPLSM_table_inputs(PTJPL_inputs_from_calval_df: DataFrame) -> Dat
 
     # Iterate over each row to compute additional variables
     for i, input_row in PTJPL_inputs_from_calval_df.iterrows():
+        # tower = input_row.tower
         tower = input_row.tower
         lat = input_row.lat
         lon = input_row.lon

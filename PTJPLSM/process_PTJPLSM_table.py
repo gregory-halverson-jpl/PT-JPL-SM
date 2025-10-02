@@ -7,24 +7,19 @@ It prepares the required variables from a pandas DataFrame, handles missing or a
 import logging
 
 import numpy as np
-import rasters as rt
-from rasters import MultiPoint, WGS84
-
-from dateutil import parser
+import pandas as pd
 from pandas import DataFrame
+from shapely.geometry import Point
+from dateutil import parser
 
+from rasters import MultiPoint, WGS84
 from SEBAL_soil_heat_flux import calculate_SEBAL_soil_heat_flux
-
-from PTJPL import load_Topt
-from PTJPL import load_fAPARmax
+from PTJPL import load_Topt, load_fAPARmax
 
 from .constants import *
 from .model import PTJPLSM
 
 logger = logging.getLogger(__name__)
-
-# FIXME include additional inputs required by PT-JPL-SM that were not required by PT-JPL
-
 
 def process_PTJPLSM_table(
         input_df: DataFrame,
@@ -162,17 +157,6 @@ def process_PTJPLSM_table(
         G_Wm2 = np.array(input_df.G_Wm2).astype(np.float64)
     else:
         G_Wm2 = None
-        # G_Wm2 = calculate_SEBAL_soil_heat_flux(
-        #     Rn=Rn_Wm2,
-        #     ST_C=ST_C,
-        #     NDVI=NDVI,
-        #     albedo=albedo
-        # ).astype(np.float64)
-
-    # --- Handle geometry and time columns ---
-    import pandas as pd
-    from rasters import MultiPoint, WGS84
-    from shapely.geometry import Point
 
     def ensure_geometry(df):
         if "geometry" in df:
@@ -216,26 +200,6 @@ def process_PTJPLSM_table(
     time_UTC = pd.to_datetime(input_df.time_UTC).tolist()
     logger.info("completed extracting time from PT-JPL-SM input table")
 
-    # if Topt_C is None:
-    #     Topt_C = load_Topt(geometry=geometry)
-    
-    # if fAPARmax is None:
-    #     fAPARmax = load_fAPARmax(geometry=geometry)
-
-    # if canopy_height_meters is None:
-    #     from gedi_canopy_height import load_canopy_height
-    #     canopy_height_meters = load_canopy_height(geometry=geometry)
-
-    # if field_capacity is None:
-    #     from soil_capacity_wilting import load_field_capacity
-    #     field_capacity = load_field_capacity(geometry=geometry)
-    # if wilting_point is None:
-    #     from soil_capacity_wilting import load_wilting_point
-    #     wilting_point = load_wilting_point(geometry=geometry)
-
-    # fAPARmax = np.where(fAPARmax == 0, np.nan, fAPARmax).astype(np.float64)
-
-    # --- Pass time and geometry to the model ---
     results = PTJPLSM(
         geometry=geometry,
         NDVI=NDVI,
